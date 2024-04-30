@@ -1,0 +1,62 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+ #creating VM
+steps:
+- task: TerraformInstaller@1
+  displayName: install terraform
+  inputs:
+    terraformVersion: 'latest'
+  
+- task: TerraformTaskV4@4
+  displayName: terraform init
+  inputs:
+      provider: 'azurerm'
+      command: 'init'
+      backendServiceArm: 'Azure subscription 1(b6177de4-5118-4999-b875-0f14fc13f0c0)'
+      backendAzureRmResourceGroupName: 'demo-resources'
+      backendAzureRmStorageAccountName: 'harshithavin'
+      backendAzureRmContainerName: 'prod-tfstate'
+      backendAzureRmKey: 'prod.terraform.tfstate'
+- task: TerraformTaskV4@4
+  displayName: terraform validate
+  inputs:
+    provider: 'azurerm'
+    command: 'validate'
+- task: TerraformTaskV4@4
+  displayName: terraform format
+  inputs:
+    provider: 'azurerm'
+    command: 'custom'
+    customCommand: 'fmt'
+    outputTo: 'console'
+    environmentServiceNameAzureRM: 'Azure subscription 1(b6177de4-5118-4999-b875-0f14fc13f0c0)'
+- task: TerraformTaskV4@4
+  displayName: terraform plan
+  inputs:
+    provider: 'azurerm'
+    command: 'plan'
+    environmentServiceNameAzureRM: 'Azure subscription 1(b6177de4-5118-4999-b875-0f14fc13f0c0)'
+
+- task: ArchiveFiles@2
+  displayName: archive files
+  inputs:
+    rootFolderOrFile: '$(Build.SourcesDirectory)'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+    replaceExistingArchive: true
+
+- task: PublishBuildArtifacts@1
+  displayName: build files
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: '$(Build.BuildId)-build'
+    publishLocation: 'Container'
